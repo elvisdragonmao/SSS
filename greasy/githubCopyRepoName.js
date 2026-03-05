@@ -5,7 +5,7 @@
 // @name:zh-TW   複製 GitHub 倉庫名
 // @name:zh      複製 GitHub 倉庫名
 // @namespace    http://tampermonkey.net/
-// @version      2025-12-02
+// @version      1.2
 // @description  Create a button to copy the repo name (owner/repo) on GitHub
 // @description:en  Create a button to copy the repo name (owner/repo) on GitHub
 // @description:zh-CN  在 GitHub 页面上添加一个按钮，点击后可以复制仓库名（owner/repo）
@@ -13,7 +13,7 @@
 // @description:zh  在 GitHub 頁面上添加一個按鈕，點擊後可以複製倉庫名（owner/repo）
 // @author       Elvis Mao
 // @match        https://github.com/*
-// @icon         https://emtech.cc/icons/apple-touch-icon.png
+// @icon         https://emtech.cc/static/icons/apple-touch-icon.png
 // @grant        none
 // @license           Apache-2.0
 // @homepageURL       https://github.com/Edit-Mr/SSS/tree/main
