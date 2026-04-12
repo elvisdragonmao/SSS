@@ -64,7 +64,8 @@
 		try {
 			const notification = new Notification(title, {
 				body,
-				tag: "nasaoj-submit-success"
+				tag: "nasaoj-submit-success",
+				icon: "https://cdn.jsdelivr.net/gh/twitter/twemoji@14.0.3/assets/72x72/1f680.png"
 			});
 
 			notification.onclick = () => {
@@ -115,7 +116,7 @@
 			if (!successNotified) {
 				successNotified = true;
 				updateStatus(`送出成功：${text}`);
-				sendBrowserNotification("NASA OJ Submit Success", text);
+				sendBrowserNotification("✅ Submit Success", text);
 			} else {
 				updateStatus(`成功但已通知過：${text}`);
 			}
