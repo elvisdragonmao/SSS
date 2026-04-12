@@ -1,5 +1,5 @@
 // ==UserScript==
-// @name         Auto Click Submit Problem
+// @name         NYCU NASA OJ Auto Click Submit Problem
 // @namespace    https://tampermonkey.net/
 // @version      1.0.0
 // @description  Auto click submit-problem button with floating control panel
