@@ -1,8 +1,8 @@
 // ==UserScript==
 // @name         NYCU NASA OJ Auto Click Submit Problem
 // @namespace    https://tampermonkey.net/
-// @version      1.0.2
-// @description  Auto click submit-problem button with floating control panel
+// @version      1.1.1
+// @description  Auto click submit-problem button with floating control panel and success notification
 // @author       Elvis Mao
 // @include      /^https:\/\/nasaoj-.*\.it\.cs\.nycu\.edu\.tw\/problems\/.*/
 // @grant        GM_getValue
@@ -19,14 +19,19 @@
 	};
 
 	const DEFAULT_INTERVAL_SEC = 5;
-	const MIN_INTERVAL_SEC = 1;
 
 	let enabled = GM_getValue(STORAGE_KEYS.enabled, false);
 	let intervalSec = Number(GM_getValue(STORAGE_KEYS.intervalSec, DEFAULT_INTERVAL_SEC));
 	let panelMinimized = GM_getValue(STORAGE_KEYS.panelMinimized, false);
 	let timer = null;
 
-	if (!Number.isFinite(intervalSec) || intervalSec < MIN_INTERVAL_SEC) {
+	// 避免同一輪成功一直通知
+	let successNotified = false;
+
+	// 記錄已處理過的 toast，避免 MutationObserver 重複掃到同一個
+	const seenToasts = new WeakSet();
+
+	if (!Number.isFinite(intervalSec)) {
 		intervalSec = DEFAULT_INTERVAL_SEC;
 	}
 
@@ -34,7 +39,125 @@
 		return document.querySelector('button[data-umami-event="submit-problem"]');
 	}
 
-	function clickTargetButton() {
+	function updateStatus(text) {
+		if (statusEl) statusEl.textContent = text;
+	}
+
+	async function requestNotificationPermissionIfNeeded() {
+		if (!("Notification" in window)) return false;
+
+		if (Notification.permission === "granted") return true;
+		if (Notification.permission === "denied") return false;
+
+		try {
+			const permission = await Notification.requestPermission();
+			return permission === "granted";
+		} catch {
+			return false;
+		}
+	}
+
+	function sendBrowserNotification(title, body) {
+		if (!("Notification" in window)) return;
+		if (Notification.permission !== "granted") return;
+
+		try {
+			const notification = new Notification(title, {
+				body,
+				tag: "nasaoj-submit-success"
+			});
+
+			notification.onclick = () => {
+				window.focus();
+			};
+		} catch (err) {
+			console.error("[Auto Submit] Failed to send notification:", err);
+		}
+	}
+
+	function normalizeText(text) {
+		return String(text || "")
+			.replace(/\s+/g, " ")
+			.trim();
+	}
+
+	function isBusyMessage(text) {
+		const normalized = normalizeText(text);
+		return normalized.includes("Please either wait for the current submission to finish") || normalized.includes("Submission in cooldown, please try again after");
+	}
+
+	function isSuccessMessage(text, toastEl) {
+		const normalized = normalizeText(text).toLowerCase();
+		const toastType = toastEl?.getAttribute("data-type")?.toLowerCase();
+
+		return toastType === "success" && normalized.startsWith("problem ") && normalized.endsWith(" submitted");
+	}
+
+	async function handleToastElement(toastEl) {
+		if (!toastEl || seenToasts.has(toastEl)) return;
+		seenToasts.add(toastEl);
+
+		const titleEl = toastEl.querySelector("[data-title]");
+		const contentEl = toastEl.querySelector("[data-content]");
+		const text = normalizeText(titleEl?.textContent || contentEl?.textContent || toastEl.textContent || "");
+
+		if (!text) return;
+
+		console.log("[Auto Submit] Toast detected:", text);
+
+		if (isBusyMessage(text)) {
+			successNotified = false;
+			updateStatus(`等待中：${text}`);
+			return;
+		}
+
+		if (isSuccessMessage(text, toastEl)) {
+			if (!successNotified) {
+				successNotified = true;
+				updateStatus(`送出成功：${text}`);
+				sendBrowserNotification("NASA OJ Submit Success", text);
+			} else {
+				updateStatus(`成功但已通知過：${text}`);
+			}
+			return;
+		}
+
+		updateStatus(`訊息：${text}`);
+	}
+
+	function observeToasts() {
+		const root = document.body || document.documentElement;
+		if (!root) return;
+
+		const observer = new MutationObserver(mutations => {
+			for (const mutation of mutations) {
+				for (const node of mutation.addedNodes) {
+					if (!(node instanceof HTMLElement)) continue;
+
+					if (node.matches?.("[data-sonner-toast]")) {
+						handleToastElement(node);
+					}
+
+					const nestedToasts = node.querySelectorAll?.("[data-sonner-toast]");
+					if (nestedToasts?.length) {
+						for (const toastEl of nestedToasts) {
+							handleToastElement(toastEl);
+						}
+					}
+				}
+			}
+		});
+
+		observer.observe(root, {
+			childList: true,
+			subtree: true
+		});
+
+		// 頁面上已存在的 toaster 也先掃一次
+		document.querySelectorAll("[data-sonner-toast]").forEach(handleToastElement);
+	}
+
+	async function clickTargetButton() {
 		const btn = getTargetButton();
 		if (!btn) {
 			updateStatus("找不到按鈕");
@@ -45,6 +168,8 @@
 			updateStatus("按鈕已停用");
 			return false;
 		}
+
+		await requestNotificationPermissionIfNeeded();
 
 		btn.click();
 		updateStatus(`已點擊 ${new Date().toLocaleTimeString()}`);
@@ -85,7 +210,7 @@
 
 	function setIntervalSec(nextValue) {
 		const parsed = Number(nextValue);
-		if (!Number.isFinite(parsed) || parsed < MIN_INTERVAL_SEC) return;
+		if (!Number.isFinite(parsed)) return;
 
 		intervalSec = parsed;
 		saveState();
@@ -357,10 +482,6 @@
 	const minimizeBtn = panel.querySelector("#tm-minimize-btn");
 	const dotEl = panel.querySelector(".tm-dot");
 
-	function updateStatus(text) {
-		if (statusEl) statusEl.textContent = text;
-	}
-
 	function syncUI() {
 		intervalInput.value = String(intervalSec);
 
@@ -381,7 +502,10 @@
 		}
 	}
 
-	toggleBtn.addEventListener("click", () => {
+	toggleBtn.addEventListener("click", async () => {
+		if (!enabled) {
+			await requestNotificationPermissionIfNeeded();
+		}
 		toggleEnabled(!enabled);
 	});
 
@@ -395,14 +519,15 @@
 		}
 	});
 
-	clickNowBtn.addEventListener("click", () => {
-		clickTargetButton();
+	clickNowBtn.addEventListener("click", async () => {
+		await clickTargetButton();
 	});
 
 	minimizeBtn.addEventListener("click", () => {
 		setMinimized(!panelMinimized);
 	});
 
+	observeToasts();
 	syncUI();
 	startAutoClick();
 })();
