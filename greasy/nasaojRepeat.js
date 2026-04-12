@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         NYCU NASA OJ Auto Click Submit Problem
 // @namespace    https://tampermonkey.net/
-// @version      1.0.1
+// @version      1.0.2
 // @description  Auto click submit-problem button with floating control panel
 // @author       Elvis Mao
 // @include      /^https:\/\/nasaoj-.*\.it\.cs\.nycu\.edu\.tw\/problems\/.*/
@@ -109,7 +109,7 @@
           <div class="tm-dot"></div>
           <div>
             <div class="tm-title">Auto Submit</div>
-            <div class="tm-subtitle">submit-problem button</div>
+            <div class="tm-subtitle">By <a href="https://github.com/elvisdragonmao/SSS" target="_blank">Elvis Mao</a></div>
           </div>
         </div>
         <button class="tm-icon-btn" id="tm-minimize-btn" type="button" title="收合/展開">−</button>
@@ -178,7 +178,7 @@
     #tm-auto-submit-panel .tm-title-wrap {
       display: flex;
       align-items: center;
-      gap: 10px;
+      gap: 16px;
       min-width: 0;
     }
 
