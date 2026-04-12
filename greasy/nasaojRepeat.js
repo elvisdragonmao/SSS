@@ -1,10 +1,10 @@
 // ==UserScript==
 // @name         NYCU NASA OJ Auto Click Submit Problem
 // @namespace    https://tampermonkey.net/
-// @version      1.0.0
+// @version      1.0.1
 // @description  Auto click submit-problem button with floating control panel
-// @author       You
-// @match        url https://nasaoj-v3.it.cs.nycu.edu.tw/problems/*
+// @author       Elvis Mao
+// @include      /^https:\/\/nasaoj-.*\.it\.cs\.nycu\.edu\.tw\/problems\/.*/
 // @grant        GM_getValue
 // @grant        GM_setValue
 // ==/UserScript==
